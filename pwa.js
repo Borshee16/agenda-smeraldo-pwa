@@ -1,0 +1,12 @@
+export function setupPWA(announce){
+ const install=document.getElementById('ag-install'),help=document.getElementById('ag-install-help'),offline=document.getElementById('ag-offline-status');let prompt;
+ function status(){document.getElementById('ag-connection').textContent=navigator.onLine?'Sul dispositivo':'Offline · dati sul dispositivo';}
+ status();window.addEventListener('online',status);window.addEventListener('offline',status);
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();prompt=e;install.hidden=false;help.textContent='Installa l’agenda per aprirla dalla schermata Home.';});
+ const installed=()=>{install.hidden=true;help.textContent='App installata su questo dispositivo.';};
+ if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)installed();
+ window.addEventListener('appinstalled',installed);
+ install.addEventListener('click',async()=>{if(prompt){await prompt.prompt();const result=await prompt.userChoice;if(result.outcome==='accepted')installed();prompt=null;}else{help.textContent=/iPhone|iPad|iPod/.test(navigator.userAgent)?'In Safari: Condividi → Aggiungi alla schermata Home.':'Apri il menu del browser e scegli Installa app o Aggiungi alla schermata Home, se disponibile.';announce(help.textContent);}});
+ if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(reg=>{navigator.serviceWorker.ready.then(()=>offline.textContent='Pronta per funzionare offline su questo dispositivo.');const offerUpdate=()=>{if(!reg.waiting)return;let b=document.getElementById('ag-update-app');if(!b){b=document.createElement('button');b.id='ag-update-app';b.type='button';b.className='ag-button';b.textContent='Aggiorna app';install.parentElement.append(b);b.addEventListener('click',()=>{reg.waiting?.postMessage({type:'SKIP_WAITING'});});}announce('È disponibile una nuova versione. Puoi aggiornarla da Impostazioni.');};offerUpdate();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)offerUpdate();});});let reloading=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!reloading&&document.getElementById('ag-update-app')){reloading=true;location.reload();}});}).catch(()=>{offline.textContent='Funzionamento offline non ancora pronto: riapri l’app con una connessione.';});}
+ else offline.textContent='Questo browser non supporta il funzionamento offline.';
+}
