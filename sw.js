@@ -1,4 +1,4 @@
-const VERSION='2026-09-23-turchese-1';
+const VERSION='2026-09-24-calendar-fixes-1';
 const PREFIX='agenda-smeraldo-'+encodeURIComponent(self.registration.scope)+'-';
 const CACHE=PREFIX+VERSION;
 const FILES=['./','./index.html','./app.css','./app.js','./model.js','./initial-data.js','./storage.js','./pwa.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png'];

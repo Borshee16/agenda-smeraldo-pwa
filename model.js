@@ -28,7 +28,7 @@ export function recurrenceOffset(t,s){
  if(recurrenceDate(t.start,i,t.every,unit)>s)i--;
  return i<0?-1:diff(s,recurrenceDate(t.start,i,t.every,unit));
 }
-export function isCycleTask(t){return t.cycleMarker===true||(t.cycleMarker===undefined&&t.mode==='period'&&/ciclo|mestrual/i.test(t.name));}
+export function isCycleTask(t){return /^(?:ciclo(?:\s+mestruale)?|mestruazioni)$/i.test(t.name.trim())&&t.mode!=='relative';}
 export function swapCandidates(state,personId,date,code){return state.roster.people.filter(p=>p.id!==personId&&shift(state,p.id,date)===code);}
 export function changeShift(state,personId,date,code,partnerId=''){
  if(!validDate(date)||!CODES.includes(code)||!state.roster.people.some(p=>p.id===personId))throw Error('Turno o giorno non valido.');
@@ -40,6 +40,18 @@ export function changeShift(state,personId,date,code,partnerId=''){
   state.overrides[partner.id+'|'+date]=old;
  }else if(partnerId)throw Error('Il turno del collega è cambiato. Scegli di nuovo.');
  state.overrides[personId+'|'+date]=code;
+}
+export function originalShift(state,personId,date){return shift({...state,overrides:{}},personId,date);}
+export function restoreShiftCandidates(state,personId,date){
+ const current=shift(state,personId,date),original=originalShift(state,personId,date);
+ if(current===original)return [];
+ return state.roster.people.filter(p=>p.id!==personId&&Object.hasOwn(state.overrides,p.id+'|'+date)&&shift(state,p.id,date)===original&&originalShift(state,p.id,date)===current);
+}
+export function resetShift(state,personId,date,partnerId=''){
+ if(!validDate(date)||!state.roster.people.some(p=>p.id===personId))throw Error('Persona o giorno non valido.');
+ if(partnerId&&!restoreShiftCandidates(state,personId,date).some(p=>p.id===partnerId))throw Error('Lo scambio non corrisponde più ai turni attuali.');
+ delete state.overrides[personId+'|'+date];
+ if(partnerId)delete state.overrides[partnerId+'|'+date];
 }
 export function dependsOn(tasks,id,target,seen=new Set()){if(id===target)return true;if(seen.has(id))return true;seen.add(id);const t=tasks.find(t=>t.id===id);return !!t&&t.mode==='relative'&&dependsOn(tasks,t.parentId,target,seen);}
 export function validateTask(t,tasks=[],template=false){
