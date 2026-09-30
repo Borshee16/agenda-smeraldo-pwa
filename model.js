@@ -118,3 +118,11 @@ export function validateState(input){
  for(const t of [...all,...s.templates,...s.trash.map(x=>x.template).filter(Boolean)])if(isCycleTask(t))t.category='cycle';
  s.revision=integer(s.revision,0,Number.MAX_SAFE_INTEGER)?s.revision:0;return s;
 }
+
+// Reusing a model creates an independent scheduled task. Only explicit opt-in updates the model.
+export function saveFromTemplate(state,task,templateId,updateTemplate=false){
+ if(templateId&&!state.templates.some(t=>t.id===templateId))throw Error('Attività salvata non più disponibile.');
+ if(state.tasks.some(t=>t.id===task.id))throw Error('Il nuovo impegno deve avere un identificativo distinto.');
+ saveTask(state,task,false);
+ if(updateTemplate){const model=makeTemplate({...task,id:templateId||crypto.randomUUID()});state.templates=state.templates.filter(t=>t.id!==model.id);state.templates.push(model);}
+}

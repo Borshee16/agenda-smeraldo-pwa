@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {initialState,saveTask,saveFromTemplate,validateState} from '../model.js';
+const original={id:'original',name:'Yoga',mode:'once',date:'2026-10-01',active:true,checkable:false};
+test('Riutilizzo e aggiornamento esplicito del modello non modificano gli impegni precedenti',()=>{const s=initialState();saveTask(s,original,true);const before=structuredClone(s.tasks[0]);saveFromTemplate(s,{...original,id:'second',date:'2026-11-01'},'original');assert.deepEqual(s.tasks[0],before);assert.equal(s.templates[0].name,'Yoga');saveFromTemplate(s,{...original,id:'third',name:'Yoga serale'},'original',true);assert.deepEqual(s.tasks[0],before);assert.equal(s.templates.length,1);assert.equal(s.templates[0].name,'Yoga serale');assert.equal(s.templates[0].date,undefined);validateState(s);});
+test('Un modello base personalizzato rimane salvato dopo la modifica delle note dell’impegno',()=>{const s=initialState();saveFromTemplate(s,original,null,true);assert.notEqual(s.templates[0].id,original.id);saveTask(s,{...s.tasks[0],notes:'Portare tappetino'},false);assert.equal(s.templates.length,1);assert.throws(()=>saveFromTemplate(s,{...original,id:'new'},'missing',true));assert.equal(s.tasks.length,1);validateState(s);});
