@@ -1,7 +1,7 @@
 export const DAY = 86400000;
-export const CODES = ['M1','M2','P1','P2','R','RC','Ferie'];
-export const KINDS = {M1:'morning',M2:'morning',P1:'afternoon',P2:'afternoon',R:'rest',RC:'rest',Ferie:'vacation','–':'rest'};
-export const LABELS = {M1:'Mattina',M2:'Mattina',P1:'Pomeriggio',P2:'Pomeriggio',R:'Riposo',RC:'Riposo',Ferie:'Ferie','–':'Non impostato'};
+export const CODES = ['M1','M2','P1','P2','R','RC','Ferie','T','C'];
+export const KINDS = {M1:'morning',M2:'morning',P1:'afternoon',P2:'afternoon',R:'rest',RC:'rest',Ferie:'vacation',T:'travel',C:'course','–':'rest'};
+export const LABELS = {M1:'Mattina',M2:'Mattina',P1:'Pomeriggio',P2:'Pomeriggio',R:'Riposo',RC:'Riposo',Ferie:'Ferie',T:'Trasferta',C:'Corso','–':'Non impostato'};
 export const parse = s => new Date(s+'T00:00:00Z');
 export const iso = d => d.toISOString().slice(0,10);
 export const add = (s,n) => iso(new Date(+parse(s)+n*DAY));
@@ -29,6 +29,18 @@ export function recurrenceOffset(t,s){
  return i<0?-1:diff(s,recurrenceDate(t.start,i,t.every,unit));
 }
 export function isCycleTask(t){return /^(?:ciclo(?:\s+mestruale)?|mestruazioni)$/i.test(t.name.trim())&&t.mode!=='relative';}
+export function isOnCall(t){return t.name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()==='reperibilita';}
+export function onCallHours(t){
+ if(!isOnCall(t))return '';
+ const h=t.onCall;if(!h||h.allDay)return 'Tutto il giorno';
+ return h.start+' – '+h.end+(h.end<=h.start?' · fine il giorno successivo':'');
+}
+export function taskDate(state,t,date){
+ if(occurs(state.tasks,t,date))return date;
+ const h=t.onCall;
+ if(isOnCall(t)&&h&&!h.allDay&&h.end<=h.start&&h.end!=='00:00'&&occurs(state.tasks,t,add(date,-1)))return add(date,-1);
+ return null;
+}
 export function swapCandidates(state,personId,date,code){return state.roster.people.filter(p=>p.id!==personId&&shift(state,p.id,date)===code);}
 export function changeShift(state,personId,date,code,partnerId=''){
  if(!validDate(date)||!CODES.includes(code)||!state.roster.people.some(p=>p.id===personId))throw Error('Turno o giorno non valido.');
@@ -57,6 +69,8 @@ export function dependsOn(tasks,id,target,seen=new Set()){if(id===target)return 
 export function validateTask(t,tasks=[],template=false){
  if(!t||!ident(t.id))return 'Identificativo dell’attività non valido.';
  if(typeof t.name!=='string'||!t.name.trim()||t.name.length>100)return 'Inserisci un nome di massimo 100 caratteri.';
+ if(t.notes!==undefined&&(typeof t.notes!=='string'||t.notes.length>2000))return 'Le note possono contenere al massimo 2000 caratteri.';
+ if(t.onCall!==undefined){const h=t.onCall,time=v=>typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);if(!h||typeof h.allDay!=='boolean'||(!h.allDay&&(!time(h.start)||!time(h.end))))return 'Imposta un orario di reperibilità valido.';}
  if(typeof t.checkable!=='boolean'||typeof t.active!=='boolean')return 'Impostazioni dell’attività non valide.';
  if(!['once','dates','interval','period','consecutive','relative'].includes(t.mode))return 'Tipo di ripetizione non valido.';
  if(!template){if(t.mode==='once'&&!validDate(t.date))return 'Scegli un giorno valido.';if(t.mode==='dates'&&(!Array.isArray(t.dates)||!t.dates.length||t.dates.length>366||t.dates.some(d=>!validDate(d))))return 'Aggiungi almeno una data valida.';if(['period','interval','consecutive'].includes(t.mode)&&!validDate(t.start))return 'Imposta il primo giorno.';}
@@ -77,7 +91,7 @@ export function occurs(tasks,t,s,seen=new Set(),cache=new Map()){
  else {const n=diff(s,t.start),offset=recurrenceOffset(t,s);result=t.mode==='period'?offset>=0&&offset<t.length:n>=0&&(!t.duration||n<t.duration)&&offset===0;}
  cache.set(key,result);return result;
 }
-export function due(state,s){const cache=new Map();return state.tasks.filter(t=>occurs(state.tasks,t,s,new Set(),cache));}
+export function due(state,s){return state.tasks.filter(t=>taskDate(state,t,s)!==null);}
 export function summary(t,tasks=[]){const unit={days:t.every===1?'giorno':'giorni',months:t.every===1?'mese':'mesi',years:t.every===1?'anno':'anni'}[t.unit||'days'];if(t.mode==='once')return validDate(t.date)?fmt(t.date,{day:'numeric',month:'short',year:'numeric'})+' · non si ripete':'Una sola data';if(t.mode==='dates')return (t.dates||[]).map(d=>fmt(d,{day:'numeric',month:'short'})).join(' · ');if(t.mode==='period')return `${t.length} giorni ogni ${t.every} ${unit}${validDate(t.start)?' · dal '+fmt(t.start,{day:'numeric',month:'short'}):''}`;if(t.mode==='relative'){const p=tasks.find(a=>a.id===t.parentId);return `Da ${t.before} giorni prima a ${t.after} giorni dopo ${p?.mode==='period'?'l’inizio di ':''}«${p?.name||'voce da scegliere'}»${p&&!p.active?' · disattivata':''}`;}if(t.mode==='consecutive')return `Ogni giorno per ${t.duration} giorni`;return `Ogni ${t.every} ${unit}${t.duration?' per '+t.duration+' giorni':''}${validDate(t.start)?' · dal '+fmt(t.start,{day:'numeric',month:'short'}):''}`;}
 export function dateSpan(s,n){return fmt(s,{day:'numeric',month:'short',year:'numeric'})+' – '+fmt(add(s,n-1),{day:'numeric',month:'short',year:'numeric'});}
 export function makeTemplate(task){const t=structuredClone(task);delete t.date;delete t.start;delete t.dates;delete t.templateId;delete t.reusable;if(t.mode==='relative')t.parentId=null;return t;}
