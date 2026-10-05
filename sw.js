@@ -1,4 +1,4 @@
-const VERSION='2026-10-05-day-cycle-reminders';
+const VERSION='2026-10-05-calendar-keywords';
 const PREFIX='agenda-smeraldo-'+encodeURIComponent(self.registration.scope)+'-';
 const CACHE=PREFIX+VERSION;
 const FILES=['./','./index.html','./app.css','./app.js','./model.js','./initial-data.js','./storage.js','./pwa.js','./reminders.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png'];
