@@ -88,3 +88,12 @@ html{color-scheme:light;background:#f4fafa;font:16px/1.5 system-ui,-apple-system
 #agenda-preview .ag-settings-content h2{font-size:18px;margin-top:20px}
 #agenda-preview .ag-settings-content h2:first-child{margin-top:0}
 @media(max-width:560px){#agenda-preview .ag-task-form{padding:18px}#agenda-preview .ag-source-tabs button{font-size:14px}#agenda-preview .ag-settings-accordion{padding:10px 15px}}
+
+#agenda-preview .ag-day-activities{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0}
+#agenda-preview .ag-day-activity{display:block;background:#e4f6f7;color:#173e45;border-radius:4px;padding:2px 3px;font-size:11px;line-height:1.35;text-align:left;overflow-wrap:anywhere;white-space:normal}
+#agenda-preview .ag-cycle-summary{background:#fae6eb;color:#763248}
+#agenda-preview .ag-day{height:auto;min-height:100px;justify-content:flex-start}
+#agenda-preview .ag-dialog-form{display:flex;flex-direction:column;gap:14px}
+#agenda-preview .ag-task-with-notes>.ag-button{margin:4px 4px 0 0}
+#agenda-preview #ag-cycle-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+#agenda-preview .ag-row-actions{flex-wrap:wrap}

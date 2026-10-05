@@ -21,6 +21,7 @@ export function recurrenceDate(start,index,every=1,unit='days'){
  first.setUTCDate(Math.min(d.getUTCDate(),last));return iso(first);
 }
 export function recurrenceOffset(t,s){
+ const segment=(t.cycleAdjustments||[]).filter(x=>x.from<=s).at(-1);if(segment)t={...t,start:segment.start};
  if(s<t.start)return -1;const unit=t.unit||'days';
  if(unit==='days')return diff(s,t.start)%t.every;
  const a=parse(t.start),b=parse(s),months=(b.getUTCFullYear()-a.getUTCFullYear())*12+b.getUTCMonth()-a.getUTCMonth();
@@ -75,6 +76,8 @@ export function dependsOn(tasks,id,target,seen=new Set()){if(id===target)return 
 export function validateTask(t,tasks=[],template=false){
  if(!t||!ident(t.id))return 'Identificativo dell’attività non valido.';
  if(typeof t.name!=='string'||!t.name.trim()||t.name.length>100)return 'Inserisci un nome di massimo 100 caratteri.';
+ if(t.reminder!==undefined&&(!t.reminder||typeof t.reminder.enabled!=='boolean'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(t.reminder.time)||![0,1].includes(t.reminder.daysBefore)))return 'Promemoria non valido.';
+ if(t.cycleAdjustments!==undefined&&(!Array.isArray(t.cycleAdjustments)||t.cycleAdjustments.length>500||t.cycleAdjustments.some((x,i,a)=>!x||!validDate(x.from)||!validDate(x.start)||x.from>x.start||(i>0&&x.from<=a[i-1].from))))return 'Storico del ciclo non valido.';
  if(t.category!==undefined&&t.category!=='cycle')return 'Categoria non valida.';
  if(t.mode==='consecutive'&&t.endMode==='date'&&!template&&(!consecutiveDays(t.start,t.endDate)||t.duration!==consecutiveDays(t.start,t.endDate)))return 'Scegli una data finale valida, non precedente al primo giorno.';
  if(t.notes!==undefined&&(typeof t.notes!=='string'||t.notes.length>2000))return 'Le note possono contenere al massimo 2000 caratteri.';
@@ -102,7 +105,7 @@ export function occurs(tasks,t,s,seen=new Set(),cache=new Map()){
 export function due(state,s){return state.tasks.filter(t=>taskDate(state,t,s)!==null);}
 export function summary(t,tasks=[]){const unit={days:t.every===1?'giorno':'giorni',months:t.every===1?'mese':'mesi',years:t.every===1?'anno':'anni'}[t.unit||'days'];if(t.mode==='once')return validDate(t.date)?fmt(t.date,{day:'numeric',month:'short',year:'numeric'})+' · non si ripete':'Una sola data';if(t.mode==='dates')return (t.dates||[]).map(d=>fmt(d,{day:'numeric',month:'short'})).join(' · ');if(t.mode==='period')return `${t.length} giorni ogni ${t.every} ${unit}${validDate(t.start)?' · dal '+fmt(t.start,{day:'numeric',month:'short'}):''}`;if(t.mode==='relative'){const p=tasks.find(a=>a.id===t.parentId);return `Da ${t.before} giorni prima a ${t.after} giorni dopo ${p?.mode==='period'?'l’inizio di ':''}«${p?.name||'voce da scegliere'}»${p&&!p.active?' · disattivata':''}`;}if(t.mode==='consecutive')return `Ogni giorno per ${t.duration} giorni${validDate(t.start)&&integer(t.duration,1,3650)?' · dal '+fmt(t.start)+' al '+fmt(add(t.start,t.duration-1)):''}`;return `Ogni ${t.every} ${unit}${t.duration?' per '+t.duration+' giorni':''}${validDate(t.start)?' · dal '+fmt(t.start,{day:'numeric',month:'short'}):''}`;}
 export function dateSpan(s,n){return fmt(s,{day:'numeric',month:'short',year:'numeric'})+' – '+fmt(add(s,n-1),{day:'numeric',month:'short',year:'numeric'});}
-export function makeTemplate(task){const t=structuredClone(task);delete t.date;delete t.endDate;delete t.start;delete t.dates;delete t.templateId;delete t.reusable;if(t.mode==='relative')t.parentId=null;return t;}
+export function makeTemplate(task){const t=structuredClone(task);delete t.cycleAdjustments;delete t.date;delete t.endDate;delete t.start;delete t.dates;delete t.templateId;delete t.reusable;if(t.mode==='relative')t.parentId=null;return t;}
 export function saveTask(state,task,reusable){const error=validateTask(task,state.tasks);if(error)throw Error(error);const t={...task,reusable};if(isCycleTask(t))t.category='cycle';const i=state.tasks.findIndex(a=>a.id===t.id);if(i<0)state.tasks.push(t);else state.tasks[i]=t;state.templates=state.templates.filter(a=>a.id!==t.id);if(reusable)state.templates.push(makeTemplate(t));}
 export function removeTask(state,id){const task=state.tasks.find(t=>t.id===id);if(!task)return;const affected=state.tasks.filter(t=>t.id!==id&&dependsOn(state.tasks,t.id,id));if(affected.length)throw Error('Prima modifica o elimina le attività collegate: '+affected.map(t=>t.name).join(', '));state.trash.push({task:structuredClone(task),template:state.templates.find(t=>t.id===id)||null,completed:Object.fromEntries(Object.entries(state.completed).filter(([k])=>k.startsWith(id+'|'))),deletedAt:new Date().toISOString()});state.trash=state.trash.slice(-30);state.tasks=state.tasks.filter(t=>t.id!==id);state.templates=state.templates.filter(t=>t.id!==id);for(const k of Object.keys(state.completed))if(k.startsWith(id+'|'))delete state.completed[k];}
 export function restoreTask(state,id){const item=state.trash.find(x=>x.task.id===id);if(!item)return;const error=validateTask(item.task,state.tasks);if(error)throw Error(error);state.tasks.push(item.task);if(item.template)state.templates.push(item.template);Object.assign(state.completed,item.completed);state.trash=state.trash.filter(x=>x.task.id!==id);}
@@ -125,4 +128,25 @@ export function saveFromTemplate(state,task,templateId,updateTemplate=false){
  if(state.tasks.some(t=>t.id===task.id))throw Error('Il nuovo impegno deve avere un identificativo distinto.');
  saveTask(state,task,false);
  if(updateTemplate){const model=makeTemplate({...task,id:templateId||crypto.randomUUID()});state.templates=state.templates.filter(t=>t.id!==model.id);state.templates.push(model);}
+}
+
+export function cyclePeriodStart(t,date){const offset=recurrenceOffset(t,date);return offset<0?null:add(date,-offset);}
+export function nearestCycleStart(t,date){
+ if(!validDate(date))return t.start;
+ const before=cyclePeriodStart(t,date);if(before&&diff(date,before)<t.length)return before;
+ // Look for the next actual anchor, including corrected periods.
+ let after=null;for(let i=0;i<=Math.min(t.every*366+366,36600);i++){const d=add(date,i);if(recurrenceOffset(t,d)===0){after=d;break;}}
+ return before&&(!after||diff(date,before)<=diff(after,date))?before:after||t.start;
+}
+export function moveCycle(state,id,expected,actual){
+ const t=state.tasks.find(t=>t.id===id);
+ if(!t||!isCycleTask(t)||t.mode!=='period'||!validDate(expected)||!validDate(actual)||recurrenceOffset(t,expected)!==0)throw Error('Seleziona l’inizio di un periodo del ciclo.');
+ if(expected===actual)return;
+ let previous=null;const earliest=[t.start,...(t.cycleAdjustments||[]).map(x=>x.start)].sort()[0];
+ for(let i=1;i<=36600;i++){const d=add(expected,-i);if(d<earliest)break;if(recurrenceOffset(t,d)===0){previous=d;break;}}
+ const next=recurrenceDate(expected,1,t.every,t.unit||'days');
+ if((previous&&actual<=add(previous,t.length-1))||actual>=next)throw Error('Scegli una data dopo il periodo precedente e prima del successivo.');
+ const from=actual<expected?actual:expected;
+ t.cycleAdjustments=[...(t.cycleAdjustments||[]).filter(x=>x.from<from),{from,start:actual}];
+ t.category='cycle';
 }

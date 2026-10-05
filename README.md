@@ -43,3 +43,9 @@ python3 -m http.server 8080 --directory dist
 Aprire `http://localhost:8080`. Installazione e service worker richiedono HTTPS in produzione o localhost in sviluppo. Non aprire `index.html` direttamente come file locale.
 
 La build genera una versione della cache dal contenuto degli asset. Gli aggiornamenti richiedono il pulsante **Aggiorna app** e non toccano IndexedDB. Le scritture verificano la revisione salvata per evitare sovrascritture silenziose da una seconda finestra.
+
+### Sintesi, ciclo e promemoria
+
+Il calendario mensile elenca tutte le attività del giorno; la reperibilità è rappresentata dallo sfondo giallo e rimane nel dettaglio del giorno. Il comando «Anticipo / ritardo» registra una nuova data di inizio e ricalcola le previsioni successive e le attività collegate, conservando i periodi precedenti. I backup includono queste correzioni.
+
+I promemoria sono facoltativi per ogni attività, con orario in Europe/Rome, il giorno stesso o il giorno prima. Per il ciclo riguardano solo l’inizio del periodo. La verifica avviene mentre l’app è aperta e visibile; se consentite, vengono mostrate notifiche di sistema, altrimenti un avviso nell’app. Non viene fornito un servizio push in background. L’esportazione ICS genera promemoria con VALARM per i prossimi 90 giorni, da importare e verificare nel calendario del telefono. Non è una sincronizzazione: dopo modifiche alle date occorre rimuovere la vecchia importazione e importare nuovamente.
