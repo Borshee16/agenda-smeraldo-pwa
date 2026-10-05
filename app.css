@@ -104,3 +104,6 @@ html{color-scheme:light;background:#f4fafa;font:16px/1.5 system-ui,-apple-system
 #agenda-preview .ag-intervention-swatch{display:inline-block;width:17px;height:17px;background:#f8b9bc;border-radius:4px;vertical-align:middle}
 #agenda-preview .ag-day-activity time{display:inline-block;white-space:nowrap}
 #agenda-preview .ag-today-shift .ag-intervention-today{font-size:20px;color:#722530;background:#f8b9bc;border-radius:8px;padding:6px}
+
+#agenda-preview .ag-excluded-days{flex-basis:100%;font-size:13px}#agenda-preview .ag-excluded-days summary{cursor:pointer;padding:10px 0;color:var(--ag-muted)}#agenda-preview .ag-excluded-days button{margin:4px 4px 0 0}
+#agenda-preview .ag-setting-row{flex-wrap:wrap}

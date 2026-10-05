@@ -4,7 +4,7 @@ export function romeClock(now=new Date()){
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).map(p=>[p.type,p.value]));
  return {date:`${parts.year}-${parts.month}-${parts.day}`,time:`${parts.hour}:${parts.minute}`};
 }
-export function reminderOccurs(state,t,date){return occurs(state.tasks,t,date)&&(!isCycleTask(t)||t.mode!=='period'||recurrenceOffset(t,date)===0);}
+export function reminderOccurs(state,t,date){return !t.excludedDates?.includes(date)&&occurs(state.tasks,t,date)&&(!isCycleTask(t)||t.mode!=='period'||recurrenceOffset(t,date)===0);}
 export function readyReminders(state,now=new Date()){
  const clock=romeClock(now),minutes=time=>Number(time.slice(0,2))*60+Number(time.slice(3));
  return state.tasks.flatMap(t=>{const r=t.reminder;if(!r?.enabled)return [];const date=add(clock.date,r.daysBefore),late=minutes(clock.time)-minutes(r.time);if(late<0||late>5||state.completed[t.id+'|'+date]||!reminderOccurs(state,t,date))return [];return [{task:t,date,key:t.id+'|'+date+'|'+r.time+'|'+r.daysBefore}];});
