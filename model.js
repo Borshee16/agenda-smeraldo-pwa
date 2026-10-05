@@ -1,7 +1,7 @@
 export const DAY = 86400000;
-export const CODES = ['M1','M2','P1','P2','R','RC','Ferie','T','C'];
-export const KINDS = {M1:'morning',M2:'morning',P1:'afternoon',P2:'afternoon',R:'rest',RC:'rest',Ferie:'vacation',T:'travel',C:'course','–':'rest'};
-export const LABELS = {M1:'Mattina',M2:'Mattina',P1:'Pomeriggio',P2:'Pomeriggio',R:'Riposo',RC:'Riposo',Ferie:'Ferie',T:'Trasferta',C:'Corso','–':'Non impostato'};
+export const CODES = ['M1','M2','P1','P2','R','RC','Ferie','T','C','IR'];
+export const KINDS = {M1:'morning',M2:'morning',P1:'afternoon',P2:'afternoon',R:'rest',RC:'rest',Ferie:'vacation',T:'travel',C:'course',IR:'intervention','–':'rest'};
+export const LABELS = {M1:'Mattina',M2:'Mattina',P1:'Pomeriggio',P2:'Pomeriggio',R:'Riposo',RC:'Riposo',Ferie:'Ferie',T:'Trasferta',C:'Corso',IR:'Intervento reperibilità','–':'Non impostato'};
 export const parse = s => new Date(s+'T00:00:00Z');
 export const iso = d => d.toISOString().slice(0,10);
 export const add = (s,n) => iso(new Date(+parse(s)+n*DAY));
@@ -48,7 +48,7 @@ export function taskDate(state,t,date){
  if(isOnCall(t)&&h&&!h.allDay&&h.end<=h.start&&h.end!=='00:00'&&occurs(state.tasks,t,add(date,-1)))return add(date,-1);
  return null;
 }
-export function swapCandidates(state,personId,date,code){return state.roster.people.filter(p=>p.id!==personId&&shift(state,p.id,date)===code);}
+export function swapCandidates(state,personId,date,code){if(code==='IR'||shift(state,personId,date)==='IR')return [];return state.roster.people.filter(p=>p.id!==personId&&shift(state,p.id,date)===code);}
 export function changeShift(state,personId,date,code,partnerId=''){
  if(!validDate(date)||!CODES.includes(code)||!state.roster.people.some(p=>p.id===personId))throw Error('Turno o giorno non valido.');
  const old=shift(state,personId,date);if(old===code)return;
@@ -63,7 +63,7 @@ export function changeShift(state,personId,date,code,partnerId=''){
 export function originalShift(state,personId,date){return shift({...state,overrides:{}},personId,date);}
 export function restoreShiftCandidates(state,personId,date){
  const current=shift(state,personId,date),original=originalShift(state,personId,date);
- if(current===original)return [];
+ if(current===original||current==='IR'||original==='IR')return [];
  return state.roster.people.filter(p=>p.id!==personId&&Object.hasOwn(state.overrides,p.id+'|'+date)&&shift(state,p.id,date)===original&&originalShift(state,p.id,date)===current);
 }
 export function resetShift(state,personId,date,partnerId=''){
@@ -80,6 +80,7 @@ export function validateTask(t,tasks=[],template=false){
  if(t.cycleAdjustments!==undefined&&(!Array.isArray(t.cycleAdjustments)||t.cycleAdjustments.length>500||t.cycleAdjustments.some((x,i,a)=>!x||!validDate(x.from)||!validDate(x.start)||x.from>x.start||(i>0&&x.from<=a[i-1].from))))return 'Storico del ciclo non valido.';
  if(t.category!==undefined&&t.category!=='cycle')return 'Categoria non valida.';
  if(t.mode==='consecutive'&&t.endMode==='date'&&!template&&(!consecutiveDays(t.start,t.endDate)||t.duration!==consecutiveDays(t.start,t.endDate)))return 'Scegli una data finale valida, non precedente al primo giorno.';
+ if(t.time!==undefined&&t.time!==null&&(typeof t.time!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(t.time)))return 'Seleziona un orario valido oppure Non rilevante.';
  if(t.notes!==undefined&&(typeof t.notes!=='string'||t.notes.length>2000))return 'Le note possono contenere al massimo 2000 caratteri.';
  if(t.onCall!==undefined){const h=t.onCall,time=v=>typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);if(!h||typeof h.allDay!=='boolean'||(!h.allDay&&(!time(h.start)||!time(h.end))))return 'Imposta un orario di reperibilità valido.';}
  if(typeof t.checkable!=='boolean'||typeof t.active!=='boolean')return 'Impostazioni dell’attività non valide.';

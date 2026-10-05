@@ -97,3 +97,10 @@ html{color-scheme:light;background:#f4fafa;font:16px/1.5 system-ui,-apple-system
 #agenda-preview .ag-task-with-notes>.ag-button{margin:4px 4px 0 0}
 #agenda-preview #ag-cycle-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 #agenda-preview .ag-row-actions{flex-wrap:wrap}
+
+#agenda-preview .ag-day.ag-intervention,#agenda-preview .ag-team-table tr td.ag-intervention{background:#f8b9bc;color:#722530}
+#agenda-preview .ag-chip.ag-intervention{background:#f8b9bc;color:#722530;white-space:normal;overflow-wrap:anywhere}
+#agenda-preview .ag-intervention-keyword{width:100%;font-size:11px;line-height:1.35;text-align:left;overflow-wrap:anywhere;color:#722530;font-weight:650}
+#agenda-preview .ag-intervention-swatch{display:inline-block;width:17px;height:17px;background:#f8b9bc;border-radius:4px;vertical-align:middle}
+#agenda-preview .ag-day-activity time{display:inline-block;white-space:nowrap}
+#agenda-preview .ag-today-shift .ag-intervention-today{font-size:20px;color:#722530;background:#f8b9bc;border-radius:8px;padding:6px}
